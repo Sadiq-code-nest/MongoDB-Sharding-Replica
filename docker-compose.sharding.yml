@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  # Config Servers (Replica Set)
+  config-server-1:
+    image: mongo:7.0
+    container_name: config-server-1
+    command: mongod --configsvr --replSet cfgrs --bind_ip_all --port 40001
+    ports:
+      - "40001:40001"
+    volumes:
+      - config-data-1:/data/db
+    networks:
+      - mongodb-network
+    restart: unless-stopped
+
+  config-server-2:
+    image: mongo:7.0
+    container_name: config-server-2
+    command: mongod --configsvr --replSet cfgrs --bind_ip_all --port 40002
+    ports:
+      - "40002:40002"
+    volumes:
+      - config-data-2:/data/db
+    networks:
+      - mongodb-network
+    restart: unless-stopped
+
+  config-server-3:
+    image: mongo:7.0
+    container_name: config-server-3
+    command: mongod --configsvr --replSet cfgrs --bind_ip_all --port 40003
+    ports:
+      - "40003:40003"
+    volumes:
+      - config-data-3:/data/db
+    networks:
+      - mongodb-network
+    restart: unless-stopped
+
+  # Shard 1 (Replica Set)
+  shard1-node-1:
+    image: mongo:7.0
+    container_name: shard1-node-1
+    command: mongod --shardsvr --replSet shard1rs --bind_ip_all --port 50001
+    ports:
+      - "50001:50001"
+    volumes:
+      - shard1-data-1:/data/db
+    networks:
+      - mongodb-network
+    restart: unless-stopped
+
+  shard1-node-2:
+    image: mongo:7.0
+    container_name: shard1-node-2
+    command: mongod --shardsvr --replSet shard1rs --bind_ip_all --port 50011
+    ports:
+      - "50011:50011"
+    volumes:
+      - shard1-data-2:/data/db
+    networks:
+      - mongodb-network
+    restart: unless-stopped
+
+  # Shard 2 (Replica Set)
+  shard2-node-1:
+    image: mongo:7.0
+    container_name: shard2-node-1
+    command: mongod --shardsvr --replSet shard2rs --bind_ip_all --port 50002
+    ports:
+      - "50002:50002"
+    volumes:
+      - shard2-data-1:/data/db
+    networks:
+      - mongodb-network
+    restart: unless-stopped
+
+  shard2-node-2:
+    image: mongo:7.0
+    container_name: shard2-node-2
+    command: mongod --shardsvr --replSet shard2rs --bind_ip_all --port 50012
+    ports:
+      - "50012:50012"
+    volumes:
+      - shard2-data-2:/data/db
+    networks:
+      - mongodb-network
+    restart: unless-stopped
+
+  # Mongos Router
+  mongos-router:
+    image: mongo:7.0
+    container_name: mongos-router
+    command: mongos --configdb cfgrs/config-server-1:40001,config-server-2:40002,config-server-3:40003 --bind_ip_all --port 27017
+    ports:
+      - "27017:27017"
+    networks:
+      - mongodb-network
+    restart: unless-stopped
+    depends_on:
+      - config-server-1
+      - config-server-2
+      - config-server-3
+      - shard1-node-1
+      - shard1-node-2
+      - shard2-node-1
+      - shard2-node-2
+
+volumes:
+  config-data-1:
+  config-data-2:
+  config-data-3:
+  shard1-data-1:
+  shard1-data-2:
+  shard2-data-1:
+  shard2-data-2:
+
+networks:
+  mongodb-network:
+    driver: bridge
+    name: mongodb-network
