@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  mongo-node-1:
+    image: mongo:7.0
+    container_name: mongo-node-1
+    command: mongod --replSet rs0 --bind_ip_all --port 27017
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data-1:/data/db
+      - mongo-config-1:/data/configdb
+    networks:
+      - mongodb-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mongo-node-2:
+    image: mongo:7.0
+    container_name: mongo-node-2
+    command: mongod --replSet rs0 --bind_ip_all --port 27018
+    ports:
+      - "27018:27018"
+    volumes:
+      - mongo-data-2:/data/db
+      - mongo-config-2:/data/configdb
+    networks:
+      - mongodb-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--port", "27018", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      - mongo-node-1
+
+  mongo-node-3:
+    image: mongo:7.0
+    container_name: mongo-node-3
+    command: mongod --replSet rs0 --bind_ip_all --port 27019
+    ports:
+      - "27019:27019"
+    volumes:
+      - mongo-data-3:/data/db
+      - mongo-config-3:/data/configdb
+    networks:
+      - mongodb-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--port", "27019", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      - mongo-node-1
+
+volumes:
+  mongo-data-1:
+    driver: local
+  mongo-data-2:
+    driver: local
+  mongo-data-3:
+    driver: local
+  mongo-config-1:
+    driver: local
+  mongo-config-2:
+    driver: local
+  mongo-config-3:
+    driver: local
+
+networks:
+  mongodb-network:
+    driver: bridge
+    name: mongodb-network
